@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "MyWebCrawling": {
+      "commandName": "Project",
+      "commandLineArgs": "--maxSites 5 --url https://www.bbc.co.uk"
+    }
+  },
+  "ConnectionStrings": {
+    "MyCrawlerDBLocalConnection": "Server=(localdb)\\MSSQLLocalDB;Database=MyCrawlerDb;Trusted_Connection=True;Encrypt=False;"
+  }
+}
