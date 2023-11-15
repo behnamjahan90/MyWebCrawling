@@ -1,8 +1,6 @@
 ﻿using MyWebCrawling.Core.Models;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
-namespace MyWebCrawling.interfaces
+namespace MyWebCrawling.Core.Factories.Interfaces
 {
     /// <summary>
     /// Abstracts the implementation of a web site crawler which will search for links in the given page and subsequent pages

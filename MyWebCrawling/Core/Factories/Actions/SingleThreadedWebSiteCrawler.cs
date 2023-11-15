@@ -1,12 +1,15 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Net;
+using System.Security.Policy;
+using Microsoft.Extensions.Logging;
+using MyWebCrawling.Core.Factories.Interfaces;
+using MyWebCrawling.Core.Factories.Models;
+using MyWebCrawling.Core.Models;
+using MyWebCrawling.Extentions;
+using MyWebCrawling.Persistence;
 using Polly;
 using Polly.Retry;
-using System.Net;
-using MyWebCrawling.Extentions;
-using MyWebCrawling.interfaces;
-using MyWebCrawling.Core.Models;
 
-namespace MyWebCrawling
+namespace MyWebCrawling.Core.Factories.Actions
 {
     public class SingleThreadedWebSiteCrawler : IWebSiteCrawler
     {
@@ -17,17 +20,20 @@ namespace MyWebCrawling
         private readonly Queue<SearchJob> _jobQueue;
         private readonly ILogger<SingleThreadedWebSiteCrawler> _logger;
         private readonly SortedDictionary<string, SearchResult> _searchResults;
+        private readonly IUnitOfWork _unitOfWork;
 
         public SingleThreadedWebSiteCrawler(
             ILogger<SingleThreadedWebSiteCrawler> logger,
             IHtmlParser htmlParser,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            IUnitOfWork unitOfWork)
         {
             _logger = logger;
             _htmlParser = htmlParser;
             _httpClient = httpClient;
             _errors = new List<HttpError>();
-            
+            _unitOfWork = unitOfWork;
+
             _searchResults = new SortedDictionary<string, SearchResult>();
             _jobQueue = new Queue<SearchJob>();
         }
@@ -35,8 +41,29 @@ namespace MyWebCrawling
         public async Task<List<SearchResult>> Run(string url, int maxPagesToSearch)
         {
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("User-AgentCrl", "Other");
-            _jobQueue.Enqueue(new SearchJob(url, 0));
+            _httpClient.DefaultRequestHeaders.Add("CrawlerUser", "Test");
+
+            var searchJob = _unitOfWork.SearchJobs.SearchedJob(url);
+
+            if (searchJob==null)
+            {
+                searchJob = new SearchJob
+                {
+                    Url = url,
+                    Uri = new Uri(url),
+                    Level = 0
+                };
+                _unitOfWork.SearchJobs.Add(searchJob);
+                _unitOfWork.Complete();
+            }
+            
+            _jobQueue.Enqueue(searchJob);
+
+            var result = _unitOfWork.Results.GetResult(url);
+            int jobQueCount = 0;
+            int pageCounts = 0;
+            int resultCounts = 0;
+            int errorCounts = 0;
 
             //An enhanced algorithm should be set here:
             for (int pageCount = 0; pageCount < maxPagesToSearch; pageCount++)
@@ -47,8 +74,36 @@ namespace MyWebCrawling
                     break;
                 }
                 await DiscoverLinks(url);
+
+                pageCounts += pageCount;
+                jobQueCount += _jobQueue.Count;
+                resultCounts += _searchResults.Count;
+                errorCounts += _errors.Count;
+
                 _logger.LogInformation($"----Pages searched={pageCount}, Job Queue={_jobQueue.Count}, results={_searchResults.Count}, Errors={_errors.Count}");
             }
+
+            if (result == null)
+            {
+                result = new Result
+                {
+                    UrlAddress = url,
+                    PageCounts = pageCounts,
+                    JobQueue = jobQueCount,
+                    ResultCount= resultCounts,
+                    ErrorCounts = errorCounts
+                };
+                _unitOfWork.Results.Add(result);
+            }
+            else
+            {
+                result.UrlAddress = url;
+                result.PageCounts = pageCounts;
+                result.JobQueue = jobQueCount;
+                result.ResultCount = resultCounts;
+                result.ErrorCounts = errorCounts;
+            }
+            _unitOfWork.Complete();
 
             return _searchResults.Values.ToList();
         }
@@ -69,12 +124,25 @@ namespace MyWebCrawling
                 _logger.LogInformation($"After trimming link becomes '{link}'");
 
                 //search in db 
-                var searchResult = new SearchResult
+                var searchResult = _unitOfWork.SearchResults.SearchedResult(link, searchJob.Url);
+                bool isnewResult = false;
+                if (searchResult == null)
                 {
-                    ParentPageUrl = searchJob.Url,
-                    OriginalLink = link,
-                    Level = searchJob.Level + 1
-                };
+                    searchResult = new SearchResult
+                    {
+                        ParentPageUrl = searchJob.Url,
+                        OriginalLink = link,
+                        Level = searchJob.Level + 1
+                    };
+                    isnewResult = true;
+                }
+                else
+                {
+                    searchResult.ParentPageUrl = searchJob.Url;
+                    searchResult.OriginalLink = link;
+                    searchResult.Level = searchJob.Level + 1;
+                }
+
                 bool isLinkAcceptable = IsLinkAcceptable(searchJob, searchResult);
                 if (!isLinkAcceptable)
                 {
@@ -115,8 +183,35 @@ namespace MyWebCrawling
                     _logger.LogInformation($"Child link:{searchResult.AbsoluteLink.ToString()} already added to results");
                     return;
                 }
+
+                if (isnewResult)
+                {
+                    _unitOfWork.SearchResults.Add(searchResult);
+                }
+                
+      
                 _searchResults.Add(searchResult.AbsoluteLink.ToString(), searchResult);
-                _jobQueue.Enqueue(new SearchJob(searchResult.AbsoluteLink.ToString(), searchResult.Level));
+                var searchedJob = _unitOfWork.SearchJobs.SearchedJob(searchResult.AbsoluteLink.ToString());
+                if (searchedJob == null)
+                {
+                    searchedJob = new SearchJob
+                    {
+                        Url = searchResult.AbsoluteLink.ToString(),
+                        Level = searchResult.Level,
+                        Uri = new Uri(searchResult.AbsoluteLink.ToString())
+                    };
+
+                    _unitOfWork.SearchJobs.Add(searchJob);
+                }
+                else
+                {
+                    searchedJob.Url = searchResult.AbsoluteLink.ToString();
+                    searchedJob.Level = searchResult.Level;
+                    searchedJob.Uri = new Uri(searchResult.AbsoluteLink.ToString());
+                }
+                _unitOfWork.Complete();
+
+                _jobQueue.Enqueue(searchedJob);
                 _logger.LogInformation($"Child link:{searchResult.AbsoluteLink} was added to results");
                 _logger.LogInformation($"Queue={_jobQueue.Count} Search results={_searchResults.Count}");
             });
@@ -171,8 +266,6 @@ namespace MyWebCrawling
                     RetryAttempts,
                     attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)));
         }
-
-
 
         private bool IsLinkAcceptable(SearchJob searchJob, SearchResult searchResult)
         {

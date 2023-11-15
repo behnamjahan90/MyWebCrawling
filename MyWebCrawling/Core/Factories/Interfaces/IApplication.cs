@@ -1,4 +1,4 @@
-﻿namespace MyWebCrawling.interfaces
+﻿namespace MyWebCrawling.Core.Factories.Interfaces
 {
     public interface IApplication
     {

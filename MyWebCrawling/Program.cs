@@ -3,11 +3,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MyWebCrawling;
-using MyWebCrawling.interfaces;
+using MyWebCrawling.Core;
 using MyWebCrawling.Persistence;
-using System.Data.Entity;
-
+using MyWebCrawling.Core.Factories.Actions;
+using MyWebCrawling.Core.Factories.Interfaces;
 
 
 IHost host = Host.CreateDefaultBuilder().ConfigureServices(
@@ -22,14 +21,14 @@ IHost host = Host.CreateDefaultBuilder().ConfigureServices(
             {
                 options.UseSqlServer(configuration.GetConnectionString("MyCrawlerDBLocalConnection"));
             });
-
-            services.AddSingleton<IApplication, Application>();
+            
+            services.AddScoped<IApplication, Application>();
             services.AddTransient<IWebSiteCrawler, SingleThreadedWebSiteCrawler>();
             services.AddTransient<IHtmlParser, HtmlAgilityParser>();
             services.AddTransient<HttpClient>();
             services.AddLogging(builder => builder.AddLog4Net("log4net.config"));//ILogger Interface
             services.AddTransient<ICrawlerResultsFormatter, CsvResultsFormatter>();
-           
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             //services.AddScoped<IGenericRepository<MyModel>, GenericRepository<MyModel>>();
             //services.AddScoped<IMyDbContext, MyDbContext>();
 

@@ -1,8 +1,8 @@
 ﻿using CommandLine;
 
-namespace MyWebCrawling
+namespace MyWebCrawling.Core.Factories.Models
 {
-    public class CmdLineArgumentModel
+    public class CmdLineArgument
     {
         [Option("maxSites", Required = true, HelpText = "An upper limit on the number of sub-sites to search.Example:30. This number is used as a stopping criteria which is very useful for deeply nested web sites.")]
         public int MaxSites { get; set; }

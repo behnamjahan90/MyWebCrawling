@@ -1,8 +1,7 @@
-﻿using MyWebCrawling.Core.Models;
-using MyWebCrawling.interfaces;
+﻿using MyWebCrawling.Core.Factories.Interfaces;
+using MyWebCrawling.Core.Models;
 
-
-namespace MyWebCrawling
+namespace MyWebCrawling.Core.Factories.Actions
 {
     public class CsvResultsFormatter : ICrawlerResultsFormatter
     {

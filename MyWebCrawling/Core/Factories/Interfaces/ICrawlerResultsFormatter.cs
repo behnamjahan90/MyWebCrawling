@@ -1,7 +1,6 @@
 ﻿using MyWebCrawling.Core.Models;
 
-
-namespace MyWebCrawling.interfaces
+namespace MyWebCrawling.Core.Factories.Interfaces
 {
     /// <summary>
     /// Converts the results of the crawler to the desired output. Example: CSV, JSON

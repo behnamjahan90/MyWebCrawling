@@ -1,5 +1,5 @@
 ﻿
-namespace MyWebCrawling.interfaces
+namespace MyWebCrawling.Core.Factories.Interfaces
 {
     /// <summary>
     /// Parses a HTML document

@@ -1,8 +1,7 @@
 ﻿using HtmlAgilityPack;
-using MyWebCrawling.interfaces;
+using MyWebCrawling.Core.Factories.Interfaces;
 
-
-namespace MyWebCrawling
+namespace MyWebCrawling.Core.Factories.Actions
 {
     public class HtmlAgilityParser : IHtmlParser
     {
