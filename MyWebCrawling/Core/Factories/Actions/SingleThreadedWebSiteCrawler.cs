@@ -42,7 +42,6 @@ namespace MyWebCrawling.Core.Factories.Actions
         {
             _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Add("CrawlerUser", "Test");
-
             var searchJob = _unitOfWork.SearchJobs.SearchedJob(url);
 
             if (searchJob==null)
@@ -61,8 +60,6 @@ namespace MyWebCrawling.Core.Factories.Actions
 
             var result = _unitOfWork.Results.GetResult(url);
             int jobQueCount = 0;
-            int pageCounts = 0;
-            int resultCounts = 0;
             int errorCounts = 0;
 
             //An enhanced algorithm should be set here:
@@ -75,9 +72,7 @@ namespace MyWebCrawling.Core.Factories.Actions
                 }
                 await DiscoverLinks(url);
 
-                pageCounts += pageCount;
                 jobQueCount += _jobQueue.Count;
-                resultCounts += _searchResults.Count;
                 errorCounts += _errors.Count;
 
                 _logger.LogInformation($"----Pages searched={pageCount}, Job Queue={_jobQueue.Count}, results={_searchResults.Count}, Errors={_errors.Count}");
@@ -88,9 +83,9 @@ namespace MyWebCrawling.Core.Factories.Actions
                 result = new Result
                 {
                     UrlAddress = url,
-                    PageCounts = pageCounts,
+                    PageCounts = maxPagesToSearch,
                     JobQueue = jobQueCount,
-                    ResultCount= resultCounts,
+                    ResultCount= _searchResults.Values.ToList().Count,
                     ErrorCounts = errorCounts
                 };
                 _unitOfWork.Results.Add(result);
@@ -98,9 +93,9 @@ namespace MyWebCrawling.Core.Factories.Actions
             else
             {
                 result.UrlAddress = url;
-                result.PageCounts = pageCounts;
+                result.PageCounts = maxPagesToSearch;
                 result.JobQueue = jobQueCount;
-                result.ResultCount = resultCounts;
+                result.ResultCount = _searchResults.Values.ToList().Count;
                 result.ErrorCounts = errorCounts;
             }
             _unitOfWork.Complete();
@@ -188,8 +183,7 @@ namespace MyWebCrawling.Core.Factories.Actions
                 {
                     _unitOfWork.SearchResults.Add(searchResult);
                 }
-                
-      
+
                 _searchResults.Add(searchResult.AbsoluteLink.ToString(), searchResult);
                 var searchedJob = _unitOfWork.SearchJobs.SearchedJob(searchResult.AbsoluteLink.ToString());
                 if (searchedJob == null)
@@ -201,7 +195,7 @@ namespace MyWebCrawling.Core.Factories.Actions
                         Uri = new Uri(searchResult.AbsoluteLink.ToString())
                     };
 
-                    _unitOfWork.SearchJobs.Add(searchJob);
+                    _unitOfWork.SearchJobs.Add(searchedJob);
                 }
                 else
                 {

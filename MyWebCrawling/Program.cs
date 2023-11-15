@@ -13,24 +13,25 @@ IHost host = Host.CreateDefaultBuilder().ConfigureServices(
         services =>
         {
             IConfiguration configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile(".\\Properties\\launchSettings.json")
+                .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                .AddJsonFile("Properties/launchSettings.json", optional: true, reloadOnChange: true)
                 .Build();
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseSqlServer(configuration.GetConnectionString("MyCrawlerDBLocalConnection"));
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
             });
             
             services.AddScoped<IApplication, Application>();
             services.AddTransient<IWebSiteCrawler, SingleThreadedWebSiteCrawler>();
             services.AddTransient<IHtmlParser, HtmlAgilityParser>();
             services.AddTransient<HttpClient>();
-            services.AddLogging(builder => builder.AddLog4Net("log4net.config"));//ILogger Interface
+            services.AddLogging(builder => builder.AddLog4Net("log4net.config")
+                .AddFilter("Microsoft.EntityFrameworkCore.Database.Command",
+                    LogLevel.Warning));//ILogger Interface
+
             services.AddTransient<ICrawlerResultsFormatter, CsvResultsFormatter>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            //services.AddScoped<IGenericRepository<MyModel>, GenericRepository<MyModel>>();
-            //services.AddScoped<IMyDbContext, MyDbContext>();
 
         })
         .Build();

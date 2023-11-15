@@ -6,6 +6,6 @@
     }
   },
   "ConnectionStrings": {
-    "MyCrawlerDBLocalConnection": "Server=(localdb)\\MSSQLLocalDB;Database=MyCrawlerDb;Trusted_Connection=True;Encrypt=False;"
+    "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=MyCrawlerDb;Trusted_Connection=True;Encrypt=False;"
   }
 }

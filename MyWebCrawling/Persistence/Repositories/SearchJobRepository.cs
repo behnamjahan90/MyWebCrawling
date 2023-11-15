@@ -1,4 +1,5 @@
-﻿using MyWebCrawling.Core.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using MyWebCrawling.Core.Models;
 using MyWebCrawling.Core.Repositories;
 
 namespace MyWebCrawling.Persistence.Repositories
@@ -15,7 +16,8 @@ namespace MyWebCrawling.Persistence.Repositories
         public SearchJob SearchedJob(string url)
         {
             return _context.SearchJobs
-                .SingleOrDefault(s => s.Url == url);
+                .SingleOrDefault(s => s.Url.Trim().ToLower().Equals(url.Trim().ToLower())) ;
+         
         }
 
         public IEnumerable<SearchJob> GetAllSearchJobs()

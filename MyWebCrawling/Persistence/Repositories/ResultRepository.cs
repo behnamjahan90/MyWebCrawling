@@ -26,7 +26,7 @@ namespace MyWebCrawling.Persistence.Repositories
         public Result GetResult(string url)
         {
             return _context.Results
-                .SingleOrDefault(r => r.UrlAddress == url);
+                .SingleOrDefault(r => r.UrlAddress.Trim().ToLower().Equals(url.Trim().ToLower()));
         }
 
         public void Add(Result result)

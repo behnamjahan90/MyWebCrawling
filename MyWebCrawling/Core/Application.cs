@@ -22,6 +22,7 @@ namespace MyWebCrawling.Core
             Console.WriteLine("Please Write The website full address:");
             Console.WriteLine("--------------");
             string urlAddress = Console.ReadLine();
+         
             args[3] = urlAddress;
 
             for (int index = 0; index < args.Length; index++)
@@ -30,6 +31,13 @@ namespace MyWebCrawling.Core
             }
 
             Console.WriteLine("--------------");
+        }
+
+        public void WriteWebsiteHistory(Result result)
+        {
+            Console.WriteLine(
+                $"The number of links in the Url:'{result.UrlAddress}' " +
+                $"are '{result.ResultCount}' after searching a maximum of '{result.PageCounts}'");
         }
 
         public async Task RunTask(string[] args)
@@ -48,14 +56,16 @@ namespace MyWebCrawling.Core
 
                         foreach (var result in _unitOfWork.Results.GetAllResults())
                         {
-                            Console.WriteLine(
-                                $"The number of links in the Url:'{result.UrlAddress}' " +
-                                $"are '{result.ResultCount}' after searching a maximum of '{result.PageCounts}'");
-                            Console.WriteLine("**Related Links Are**");
+                            WriteWebsiteHistory(result);
+                            
+                            Console.WriteLine("********** Related Links Are: **********");
                             foreach (var searchedResult in _unitOfWork.SearchResults.GetAllSearchResultsByUrlAddress(result.UrlAddress))
                             {
                                 Console.WriteLine($"{searchedResult.OriginalLink}");
                             }
+                            Console.WriteLine("********** Related Links Are: **********");
+
+                            WriteWebsiteHistory(result);
                             Console.WriteLine("--------------");
 
                         }
@@ -73,6 +83,11 @@ namespace MyWebCrawling.Core
 
         private static async Task Run(CmdLineArgument arg)
         {
+            if (string.IsNullOrEmpty(arg.Url))
+            {
+                Console.WriteLine("the address could not be null or empty");
+                return;
+            }
             var crawler = _provider.GetService<IWebSiteCrawler>();
             var results = await crawler.Run(arg.Url, arg.MaxSites);
             var formatter = _provider.GetService<ICrawlerResultsFormatter>();

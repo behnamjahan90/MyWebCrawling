@@ -16,8 +16,8 @@ namespace MyWebCrawling.Persistence.Repositories
         public SearchResult SearchedResult(string orginalLink,string parentLink)
         {
             return _context.SearchResults
-                .SingleOrDefault(s => s.OriginalLink == orginalLink 
-                                      && s.ParentPageUrl== parentLink);
+                .SingleOrDefault(s => s.OriginalLink.Trim().ToLower().Equals(orginalLink.Trim().ToLower()) 
+                                      && s.ParentPageUrl.Trim().ToLower().Equals(parentLink.Trim().ToLower()));
         }
 
         public IEnumerable<SearchResult> GetAllSearchResultsByUrlAddress(string parentLink)
